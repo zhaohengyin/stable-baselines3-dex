@@ -47,3 +47,6 @@ src
 *.prof
 
 MUJOCO_LOG.TXT
+
+# Custom
+/results/

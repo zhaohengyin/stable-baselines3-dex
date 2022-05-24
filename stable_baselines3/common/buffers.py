@@ -1,7 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, List, Optional, Union
-
+import stable_baselines3.pickle_utils as pickle_utils
 import numpy as np
 import torch as th
 from gym import spaces
@@ -148,6 +148,87 @@ class BaseBuffer(ABC):
         if env is not None:
             return env.normalize_reward(reward).astype(np.float32)
         return reward
+
+
+class ExpertBuffer(BaseBuffer):
+    def __init__(self,
+                 buffer_size: int,
+                 observation_space: spaces.Space,
+                 action_space: spaces.Space,
+                 device: Union[th.device, str] = "cpu",
+                 n_envs: int = 1,
+                 dataset_path=''
+                 ):
+        super(ExpertBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
+        data = pickle_utils.load_data(dataset_path)
+
+        data_obs = []
+        data_action = []
+
+        self.optimize_memory_usage = False
+
+        # print(data[0])
+        for trajectory in data:
+            print(trajectory.keys())
+            # for k, v in trajectory.items():
+            data_obs.append(trajectory['observations'])
+            data_action.append(trajectory['actions'])
+
+        self.observations = np.concatenate(data_obs, axis=0)
+        self.actions = np.concatenate(data_action, axis=0)
+
+        assert len(self.observations) == len(self.actions), "Demo Dataset Error: Obs num does not match Action num."
+        print('Expert buffer info:', self.observations.shape, self.actions.shape)
+        self.buffer_size = len(self.observations)
+        self.full = True
+
+    def add(
+            self,
+            obs: np.ndarray,
+            next_obs: np.ndarray,
+            action: np.ndarray,
+            reward: np.ndarray,
+            done: np.ndarray,
+            infos: List[Dict[str, Any]],
+    ) -> None:
+        assert False, "We do not expect user to use this method."
+
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None) -> ReplayBufferSamples:
+        # Sample randomly the env idx
+        data = (
+            self._normalize_obs(self.observations[batch_inds, :], env),
+            self.actions[batch_inds, :],
+        )
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+
+    def sample(self, batch_size: int, env: Optional[VecNormalize] = None) -> ReplayBufferSamples:
+        """
+        Sample elements from the replay buffer.
+        Custom sampling when using memory efficient variant,
+        as we should not sample the element with index `self.pos`
+        See https://github.com/DLR-RM/stable-baselines3/pull/28#issuecomment-637559274
+
+        :param batch_size: Number of element to sample
+        :param env: associated gym VecEnv
+            to normalize the observations/rewards when sampling
+        :return:
+        """
+        if not self.optimize_memory_usage:
+            return super().sample(batch_size=batch_size, env=env)
+        # Do not sample the element with index `self.pos` as the transitions is invalid
+        # (we use only one array to store `obs` and `next_obs`)
+        if self.full:
+            batch_inds = (np.random.randint(1, self.buffer_size, size=batch_size) + self.pos) % self.buffer_size
+        else:
+            batch_inds = np.random.randint(0, self.pos, size=batch_size)
+        return self._get_samples(batch_inds, env=env)
+
+    def get_all_samples(self, env=None):
+        data = (
+            self._normalize_obs(self.observations, env),
+            self.actions,
+        )
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data)), None, None, None)
 
 
 class ReplayBuffer(BaseBuffer):
