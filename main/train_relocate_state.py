@@ -2,10 +2,10 @@ from pathlib import Path
 
 import torch.nn as nn
 import wandb
-from hand_env_utils.wandb_callback import WandbCallback
 
 from hand_env_utils.arg_utils import *
 from hand_env_utils.teleop_env import create_relocate_env
+from hand_env_utils.wandb_callback import WandbCallback
 from stable_baselines3.common.vec_env.subproc_vec_env import SubprocVecEnv
 from stable_baselines3.ppo import PPO
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=int, default=100)
     parser.add_argument('--workers', type=int, default=10)
-    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--ep', type=int, default=10)
     parser.add_argument('--bs', type=int, default=5000)
     parser.add_argument('--seed', type=int, default=100)
@@ -67,6 +67,7 @@ if __name__ == '__main__':
                 learning_rate=args.lr,
                 batch_size=args.bs,
                 seed=args.seed,
+                target_kl=0.01,
                 policy_kwargs={'activation_fn': nn.ReLU},
                 tensorboard_log=str(result_path / "log")
                 )

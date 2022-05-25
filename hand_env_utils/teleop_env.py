@@ -12,7 +12,7 @@ def create_relocate_env(object_name, use_visual_obs, use_gui=False):
     else:
         print(object_name)
         raise NotImplementedError
-    rotation_reward_weight = 0
+    rotation_reward_weight = 1
     env_params = dict(object_name=object_name, robot_name=robot_name, rotation_reward_weight=rotation_reward_weight,
                       randomness_scale=1, use_visual_obs=use_visual_obs, use_gui=use_gui, no_rgb=True)
 

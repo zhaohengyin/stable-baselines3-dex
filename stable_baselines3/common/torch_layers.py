@@ -326,10 +326,9 @@ class PointNetExtractor(BaseFeaturesExtractor):
 
     def __init__(self, observation_space: gym.spaces.Dict, pc_key: str,
                  feat_key: Optional[str] = None, local_channels=(64, 128, 256), global_channels=(256, )):
-        assert pc_key in observation_space
         if feat_key is not None:
             assert feat_key in observation_space
-        # Point cloud input should have size (b, n, 3), spec size (n, 3), feat size (n, m)
+        # Point cloud input should have size (n, 3), spec size (n, 3), feat size (n, m)
         self.pc_key = pc_key
         self.has_feat = feat_key is not None
         self.feat_key = feat_key

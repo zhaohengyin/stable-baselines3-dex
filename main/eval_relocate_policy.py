@@ -5,7 +5,8 @@ from stable_baselines3.dapg import DAPG
 from stable_baselines3.ppo import PPO
 
 if __name__ == '__main__':
-    checkpoint_path = "results/ppo-mustard_bottle-ss_cartesian_reward-200/model/model_400.zip"
+    checkpoint_path = "results/ppo-mustard_bottle-pc_bs_1000-100/model/model_254.zip"
+    use_visual_obs = True
     object_name = checkpoint_path.split("/")[1].split("-")[1]
     algorithm_name = checkpoint_path.split("/")[1].split("-")[0]
     env = create_relocate_env(object_name, use_visual_obs=False, use_gui=True)
@@ -31,7 +32,6 @@ if __name__ == '__main__':
                 action = np.concatenate([np.array([0, 0, 0.1, 0, 0, 0]), action[6:]])
             else:
                 action = policy.predict(observation=obs, deterministic=True)[0]
-            print("action", action[:6])
             obs, reward, done, _ = env.step(action)
             reward_sum += reward
             env.render()

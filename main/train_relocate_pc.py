@@ -25,11 +25,11 @@ def setup_wandb(parser_config, exp_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n', type=int, default=100)
-    parser.add_argument('--workers', type=int, default=5)
+    parser.add_argument('--n', type=int, default=2)
+    parser.add_argument('--workers', type=int, default=1)
     parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--ep', type=int, default=10)
-    parser.add_argument('--bs', type=int, default=5000)
+    parser.add_argument('--ep', type=int, default=5)
+    parser.add_argument('--bs', type=int, default=1000)
     parser.add_argument('--seed', type=int, default=100)
     parser.add_argument('--iter', type=int, default=2000)
     parser.add_argument('--exp', type=str)
@@ -90,8 +90,7 @@ if __name__ == '__main__':
     model.learn(
         total_timesteps=int(env_iter),
         callback=WandbCallback(
-            gradient_save_freq=50,
-            model_save_freq=1,
+            model_save_freq=10,
             model_save_path=str(result_path / "model"),
         ),
     )
