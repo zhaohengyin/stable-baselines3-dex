@@ -1,13 +1,15 @@
 from itertools import zip_longest
-from typing import Dict, List, Tuple, Type, Union
+from typing import Dict, List, Tuple, Type, Union, Optional
 
 import gym
+import torch
 import torch as th
 from torch import nn
 
 from stable_baselines3.common.preprocessing import get_flattened_obs_dim, is_image_space
 from stable_baselines3.common.type_aliases import TensorDict
 from stable_baselines3.common.utils import get_device
+from stable_baselines3.networks.pointnet_modules.pointnet import PointNet
 
 
 class BaseFeaturesExtractor(nn.Module):
@@ -94,11 +96,11 @@ class NatureCNN(BaseFeaturesExtractor):
 
 
 def create_mlp(
-    input_dim: int,
-    output_dim: int,
-    net_arch: List[int],
-    activation_fn: Type[nn.Module] = nn.ReLU,
-    squash_output: bool = False,
+        input_dim: int,
+        output_dim: int,
+        net_arch: List[int],
+        activation_fn: Type[nn.Module] = nn.ReLU,
+        squash_output: bool = False,
 ) -> List[nn.Module]:
     """
     Create a multi layer perceptron (MLP), which is
@@ -163,11 +165,11 @@ class MlpExtractor(nn.Module):
     """
 
     def __init__(
-        self,
-        feature_dim: int,
-        net_arch: List[Union[int, Dict[str, List[int]]]],
-        activation_fn: Type[nn.Module],
-        device: Union[th.device, str] = "auto",
+            self,
+            feature_dim: int,
+            net_arch: List[Union[int, Dict[str, List[int]]]],
+            activation_fn: Type[nn.Module],
+            device: Union[th.device, str] = "auto",
     ):
         super().__init__()
         device = get_device(device)
@@ -315,3 +317,79 @@ def get_actor_critic_arch(net_arch: Union[List[int], Dict[str, List[int]]]) -> T
         assert "qf" in net_arch, "Error: no key 'qf' was provided in net_arch for the critic network"
         actor_arch, critic_arch = net_arch["pi"], net_arch["qf"]
     return actor_arch, critic_arch
+
+
+class PointNetExtractor(BaseFeaturesExtractor):
+    """
+    :param observation_space:
+    """
+
+    def __init__(self, observation_space: gym.spaces.Dict, pc_key: str,
+                 feat_key: Optional[str] = None, local_channels=(64, 128, 256), global_channels=(256, )):
+        assert pc_key in observation_space
+        if feat_key is not None:
+            assert feat_key in observation_space
+        # Point cloud input should have size (b, n, 3), spec size (n, 3), feat size (n, m)
+        self.pc_key = pc_key
+        self.has_feat = feat_key is not None
+        self.feat_key = feat_key
+        pc_spec = observation_space[pc_key]
+        pc_dim = pc_spec.shape[1]
+        if self.has_feat:
+            feat_spec = observation_space[feat_key]
+            feat_dim = feat_spec.shape[1]
+        else:
+            feat_dim = 0
+        features_dim = global_channels[-1]
+
+        super().__init__(observation_space, features_dim)
+
+        n_input_channels = pc_dim + feat_dim
+        self.point_net = PointNet(n_input_channels, local_channels=local_channels, global_channels=global_channels)
+        self.n_input_channels = n_input_channels
+        self.n_output_channels = self.point_net.out_channels
+
+    def forward(self, observations: TensorDict) -> th.Tensor:
+        points = torch.transpose(observations[self.pc_key], 1, 2)
+        if self.has_feat:
+            feats = torch.transpose(observations[self.feat_key], 1, 2)
+        else:
+            feats = None
+        return self.point_net(points, feats)["feature"]
+
+
+class PointNetCombinedExtractor(BaseFeaturesExtractor):
+    """
+    Combined feature extractor for Dict observation spaces.
+    Builds a feature extractor for each key of the space. Input from each space
+    is fed through a separate submodule (CNN or MLP, depending on input shape),
+    the output features are concatenated and fed through additional MLP network ("combined").
+
+    :param observation_space:
+    """
+
+    def __init__(self, observation_space: gym.spaces.Dict, point_net_output_dim: int = 256):
+        super().__init__(observation_space, features_dim=1)
+
+        extractors = {}
+        total_concat_size = 0
+        for key, subspace in observation_space.spaces.items():
+            if isinstance(subspace, gym.spaces.Box) and len(subspace.shape) == 3:
+                extractors[key] = PointNetExtractor(subspace, features_dim=point_net_output_dim)
+                total_concat_size += point_net_output_dim
+            else:
+                # The observation key is a vector, flatten it if needed
+                extractors[key] = nn.Flatten()
+                total_concat_size += get_flattened_obs_dim(subspace)
+
+        self.extractors = nn.ModuleDict(extractors)
+
+        # Update the features dim manually
+        self._features_dim = total_concat_size
+
+    def forward(self, observations: TensorDict) -> th.Tensor:
+        encoded_tensor_list = []
+
+        for key, extractor in self.extractors.items():
+            encoded_tensor_list.append(extractor(observations[key]))
+        return th.cat(encoded_tensor_list, dim=1)

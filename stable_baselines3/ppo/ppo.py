@@ -67,6 +67,7 @@ class PPO(OnPolicyAlgorithm):
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
         "MlpPolicy": ActorCriticPolicy,
+        "PointCloudPolicy": ActorCriticPolicy,
         "CnnPolicy": ActorCriticCnnPolicy,
         "MultiInputPolicy": MultiInputActorCriticPolicy,
     }
