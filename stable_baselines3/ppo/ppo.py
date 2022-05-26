@@ -181,10 +181,11 @@ class PPO(OnPolicyAlgorithm):
         self.target_kl = target_kl
         self.kl_scheduler = AdaptiveScheduler(kl_threshold=target_kl, min_lr=min_lr, max_lr=max_lr,
                                               init_lr=learning_rate)
-
+        
         if _init_setup_model:
             self._setup_model()
-
+        print("Finish PPO init")
+        
     def _setup_model(self) -> None:
         super()._setup_model()
 
