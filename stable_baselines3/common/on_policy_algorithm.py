@@ -256,9 +256,9 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         callback.on_training_start(locals(), globals())
 
         while self.num_timesteps < total_timesteps:
-
+            x = time.time()
             continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
-
+            print("Rollout time:", time.time() - x) 
             if continue_training is False:
                 break
 
