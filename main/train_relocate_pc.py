@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     object_name = args.object_name
-    exp_keywords = ["ppo", object_name, args.exp, str(args.seed)]
+    exp_keywords = ["ppopc", object_name, args.exp, str(args.seed)]
     env_iter = args.iter * 500 * args.n
 
     config = {
