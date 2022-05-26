@@ -418,12 +418,12 @@ class BaseAlgorithm(ABC):
         :return:
         """
         self.start_time = time.time()
-
+        print("Setup Buffer")
         if self.ep_info_buffer is None or reset_num_timesteps:
             # Initialize buffers if they don't exist, or reinitialize if resetting counters
             self.ep_info_buffer = deque(maxlen=100)
             self.ep_success_buffer = deque(maxlen=100)
-
+        print("Setup Action Noise")
         if self.action_noise is not None:
             self.action_noise.reset()
 
@@ -435,7 +435,8 @@ class BaseAlgorithm(ABC):
             total_timesteps += self.num_timesteps
         self._total_timesteps = total_timesteps
         self._num_timesteps_at_start = self.num_timesteps
-
+        
+        
         # Avoid resetting the environment when calling ``.learn()`` consecutive times
         if reset_num_timesteps or self._last_obs is None:
             self._last_obs = self.env.reset()  # pytype: disable=annotation-type-mismatch
@@ -443,16 +444,18 @@ class BaseAlgorithm(ABC):
             # Retrieve unnormalized observation for saving into the buffer
             if self._vec_normalize_env is not None:
                 self._last_original_obs = self._vec_normalize_env.get_original_obs()
-
+        print("Set seeds.")
         if eval_env is not None and self.seed is not None:
             eval_env.seed(self.seed)
-
+        print("Setup eval env")
         eval_env = self._get_eval_env(eval_env)
-
+        
+        print("Setup logger")
         # Configure logger's outputs if no logger was passed
         if not self._custom_logger:
             self._logger = utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
-
+        
+        print("Setup Callback")
         # Create eval callback if needed
         callback = self._init_callback(callback, eval_env, eval_freq, n_eval_episodes, log_path)
 
