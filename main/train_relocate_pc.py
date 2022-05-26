@@ -84,7 +84,8 @@ if __name__ == '__main__':
                 batch_size=args.bs,
                 seed=args.seed,
                 policy_kwargs=policy_kwargs,
-                tensorboard_log=str(result_path / "log")
+                tensorboard_log=str(result_path / "log"),
+                target_kl=0.02
                 )
 
     model.learn(
