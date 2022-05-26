@@ -248,13 +248,13 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         reset_num_timesteps: bool = True,
     ) -> "OnPolicyAlgorithm":
         iteration = 0
-
+        print("Learn 1")
         total_timesteps, callback = self._setup_learn(
             total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
-
+        print("Learn 2")
         callback.on_training_start(locals(), globals())
-
+        print("Enter loop")
         while self.num_timesteps < total_timesteps:
             x = time.time()
             continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
