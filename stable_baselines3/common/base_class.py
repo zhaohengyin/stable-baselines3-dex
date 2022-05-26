@@ -436,7 +436,7 @@ class BaseAlgorithm(ABC):
         self._total_timesteps = total_timesteps
         self._num_timesteps_at_start = self.num_timesteps
         
-        
+        print("Setup Env.")
         # Avoid resetting the environment when calling ``.learn()`` consecutive times
         if reset_num_timesteps or self._last_obs is None:
             self._last_obs = self.env.reset()  # pytype: disable=annotation-type-mismatch
