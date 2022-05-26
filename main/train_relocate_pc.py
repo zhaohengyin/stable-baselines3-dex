@@ -76,7 +76,7 @@ if __name__ == '__main__':
         "net_arch": [dict(pi=[64, 64], vf=[64, 64])],
         "activation_fn": nn.Tanh,
     }
-
+    print("Initializing model")
     model = PPO("PointCloudPolicy", env, verbose=1,
                 n_epochs=args.ep,
                 n_steps=(args.n // args.workers) * 500,
@@ -87,7 +87,7 @@ if __name__ == '__main__':
                 tensorboard_log=str(result_path / "log"),
                 target_kl=0.02
                 )
-
+    print("Start learning")
     model.learn(
         total_timesteps=int(env_iter),
         callback=WandbCallback(
